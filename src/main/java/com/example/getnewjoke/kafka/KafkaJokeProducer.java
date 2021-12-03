@@ -11,39 +11,48 @@ package com.example.getnewjoke.kafka;
 
 import com.example.avro.Joke;
 import com.example.getnewjoke.model.JokeEntity;
-import com.example.getnewjoke.util.AppConst;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.util.Properties;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class KafkaJokeProducer {
-  private Properties props;
-  private KafkaProducer<String, Joke> producer;
 
-  public KafkaJokeProducer() {
-    props = new Properties();
-    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, AppConst.WSL_IP + ":9092");
+  private final KafkaProducer<String, Joke> producer;
+
+  @Value("${kafka.topic}")
+  private String kafkaTopic;
+
+  @Autowired
+  public KafkaJokeProducer(
+      @Value("${kafka.bootstrap-server.url}") final String kafkaBootstrapServerUrl,
+      @Value("${kafka.schema-registry.url}") final String schemaRegistryUrl
+  ) {
+    Properties props = new Properties();
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServerUrl);
     props.put(
-        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://" + AppConst.WSL_IP + ":8081");
+        AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
     props.put(ProducerConfig.ACKS_CONFIG, "all");
     props.put(ProducerConfig.RETRIES_CONFIG, 0);
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaAvroSerializer.class);
 
-    producer = new KafkaProducer<String, Joke>(props);
+    producer = new KafkaProducer<>(props);
   }
 
   public void addNewJokeToKafka(JokeEntity jokeEntity) {
-    final Joke joke = new Joke(String.valueOf(jokeEntity.getId()), jokeEntity.getCategory(), jokeEntity.getType(), jokeEntity.getJoke());
-    final ProducerRecord<String, Joke> record = new ProducerRecord<String, Joke>(AppConst.TOPIC, joke.getId().toString(), joke);
-    producer.send(record);
+    final Joke joke = new Joke(String.valueOf(jokeEntity.getId()), jokeEntity.getCategory(),
+        jokeEntity.getType(), jokeEntity.getJoke());
+    final ProducerRecord<String, Joke> producerRecord = new ProducerRecord<>(kafkaTopic,
+        joke.getId().toString(), joke);
+    producer.send(producerRecord);
     producer.flush();
   }
 }
