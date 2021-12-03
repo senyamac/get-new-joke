@@ -1,0 +1,8 @@
+kafka:
+  bootstrap-server:
+    url: 172.25.67.165:9092
+  schema-registry:
+    url: http://172.25.67.165:8081
+  topic: jokes-test
+api:
+  url: https://v2.jokeapi.dev/joke/Any?type=single
