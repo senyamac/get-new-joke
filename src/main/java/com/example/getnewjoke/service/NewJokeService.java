@@ -11,11 +11,11 @@ package com.example.getnewjoke.service;
 
 import com.example.getnewjoke.kafka.KafkaJokeProducer;
 import com.example.getnewjoke.model.JokeEntity;
-import com.example.getnewjoke.util.AppConst;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -23,30 +23,36 @@ import org.springframework.web.client.RestTemplate;
 @Slf4j
 @Service
 public class NewJokeService {
+
   private final RestTemplate restTemplate;
+  private final ObjectMapper objectMapper;
+
+  @Value("${api.url}")
+  private String apiUrl;
 
   @Autowired
   private KafkaJokeProducer producer;
 
   public NewJokeService() {
     restTemplate = new RestTemplate();
+    objectMapper = new ObjectMapper();
   }
 
   public JokeEntity getNewJokeFromApi() {
-    String message = restTemplate.getForObject(AppConst.URL_API, String.class);
-    ObjectMapper mapper = new ObjectMapper();
-    JokeEntity jokeEntity  = new JokeEntity();
+    String message = restTemplate.getForObject(apiUrl, String.class);
+    JokeEntity jokeEntity = new JokeEntity();
     try {
-      jokeEntity = mapper.readValue(message, JokeEntity.class);
+      jokeEntity = objectMapper.readValue(message, JokeEntity.class);
       log.debug(jokeEntity.toString());
     } catch (JsonProcessingException e) {
-      log.error(e.getMessage(), e);
+      log.error("Error while trying to convert API response to JokeEntity, {} {}", e.getMessage(),
+          e);
     }
     return jokeEntity;
   }
 
   @Scheduled(fixedDelay = 3000)
-  public void processWithJoke() {
+  public void scheduledTask() {
     log.debug("Start process");
     JokeEntity joke = getNewJokeFromApi();
     producer.addNewJokeToKafka(joke);
