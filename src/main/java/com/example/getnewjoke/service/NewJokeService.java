@@ -11,8 +11,6 @@ package com.example.getnewjoke.service;
 
 import com.example.getnewjoke.kafka.KafkaJokeProducer;
 import com.example.getnewjoke.model.JokeEntity;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +23,6 @@ import org.springframework.web.client.RestTemplate;
 public class NewJokeService {
 
   private final RestTemplate restTemplate;
-  private final ObjectMapper objectMapper;
 
   @Value("${api.url}")
   private String apiUrl;
@@ -35,19 +32,12 @@ public class NewJokeService {
 
   public NewJokeService() {
     restTemplate = new RestTemplate();
-    objectMapper = new ObjectMapper();
   }
 
   public JokeEntity getNewJokeFromApi() {
     String message = restTemplate.getForObject(apiUrl, String.class);
     JokeEntity jokeEntity = new JokeEntity();
-    try {
-      jokeEntity = objectMapper.readValue(message, JokeEntity.class);
-      log.debug(jokeEntity.toString());
-    } catch (JsonProcessingException e) {
-      log.error("Error while trying to convert API response to JokeEntity, {} {}", e.getMessage(),
-          e);
-    }
+    jokeEntity.setJoke(message);
     return jokeEntity;
   }
 
@@ -55,7 +45,8 @@ public class NewJokeService {
   public void scheduledTask() {
     log.debug("Start process");
     JokeEntity joke = getNewJokeFromApi();
+    log.debug(joke.toString());
     producer.addNewJokeToKafka(joke);
-    log.debug("Joke was sent");
+    log.debug("Joke sent");
   }
 }

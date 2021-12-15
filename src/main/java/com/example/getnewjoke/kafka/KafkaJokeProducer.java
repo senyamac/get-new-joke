@@ -29,12 +29,14 @@ public class KafkaJokeProducer {
 
   @Value("${kafka.topic}")
   private String kafkaTopic;
+  private int incrementalId;
 
   @Autowired
   public KafkaJokeProducer(
       @Value("${kafka.bootstrap-server.url}") final String kafkaBootstrapServerUrl,
       @Value("${kafka.schema-registry.url}") final String schemaRegistryUrl
   ) {
+    incrementalId = 0;
     Properties props = new Properties();
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServerUrl);
     props.put(
@@ -48,10 +50,10 @@ public class KafkaJokeProducer {
   }
 
   public void addNewJokeToKafka(JokeEntity jokeEntity) {
-    final Joke joke = new Joke(String.valueOf(jokeEntity.getId()), jokeEntity.getCategory(),
-        jokeEntity.getType(), jokeEntity.getJoke());
+    final Joke joke = new Joke(jokeEntity.getJoke());
     final ProducerRecord<String, Joke> producerRecord = new ProducerRecord<>(kafkaTopic,
-        joke.getId().toString(), joke);
+        String.valueOf(incrementalId), joke);
+    incrementalId++;
     producer.send(producerRecord);
     producer.flush();
   }
