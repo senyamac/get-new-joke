@@ -11,11 +11,13 @@ package com.example.getnewjoke.service;
 
 import com.example.getnewjoke.kafka.KafkaJokeProducer;
 import com.example.getnewjoke.model.JokeEntity;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
@@ -34,19 +36,31 @@ public class NewJokeService {
     restTemplate = new RestTemplate();
   }
 
-  public JokeEntity getNewJokeFromApi() {
-    String message = restTemplate.getForObject(apiUrl, String.class);
+  public Optional<JokeEntity> getNewJokeFromApi() {
+    String message = null;
+    try {
+      message = restTemplate.getForObject(apiUrl, String.class);
+    } catch (RestClientException e) {
+      log.warn("Unable to get joke from API. Due to: {}", e.getMessage());
+    }
+    if (message == null) {
+      return Optional.empty();
+    }
     JokeEntity jokeEntity = new JokeEntity();
     jokeEntity.setJoke(message);
-    return jokeEntity;
+    return Optional.of(jokeEntity);
   }
 
   @Scheduled(fixedDelay = 3000)
   public void scheduledTask() {
     log.debug("Start process");
-    JokeEntity joke = getNewJokeFromApi();
-    log.debug(joke.toString());
-    producer.addNewJokeToKafka(joke);
-    log.debug("Joke sent");
+    Optional<JokeEntity> joke = getNewJokeFromApi();
+    if (joke.isPresent()) {
+      log.debug(joke.toString());
+      producer.addNewJokeToKafka(joke.get());
+      log.debug("Joke sent");
+    } else {
+      log.info("Skip joke due to impossibility getting from API");
+    }
   }
 }
