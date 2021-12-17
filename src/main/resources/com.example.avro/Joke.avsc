@@ -3,9 +3,6 @@
   "type": "record",
   "name": "Joke",
   "fields": [
-    {"name": "id", "type": "string"},
-    {"name": "category", "type": "string"},
-    {"name": "type", "type": "string"},
     {"name": "joke", "type": "string"}
   ]
 }

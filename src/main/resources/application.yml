@@ -1,0 +1,10 @@
+kafka:
+  bootstrap-server:
+    url: 192.168.31.36:29093
+  schema-registry:
+    url: http://192.168.31.36:8081
+  topic: jokes-test
+api:
+  url: https://api.chucknorris.io/jokes/random
+server:
+  port: 8095
