@@ -1,0 +1,28 @@
+@startuml
+
+participant JokeService as js
+participant JokeEntity as j
+participant KafkaProducer as kp
+queue Kafka as k
+box "external" #LightBlue
+participant API
+endbox
+
+autonumber
+loop @Scheduled - every 3 sec
+  js -> API: Get Joke Request
+  activate API
+  js <-- API: Response with Joke string
+  deactivate API
+  js -> j: new JokeEntity()
+  activate j
+  js <-- j: return JokeEntity
+  deactivate j
+  js -> kp: addJokeToKafka()
+  activate kp
+  kp -> k: send(JokeEntity)
+  deactivate kp
+end
+
+
+@enduml
