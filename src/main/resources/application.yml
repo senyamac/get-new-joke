@@ -1,8 +1,8 @@
 kafka:
   bootstrap-server:
-    url: 192.168.31.36:29093
+    url: http://kafka.confluent.svc.cluster.local:9092
   schema-registry:
-    url: http://192.168.31.36:8081
+    url: http://schemaregistry.confluent.svc.cluster.local:8081
   topic: jokes-test
 api:
   url: https://api.chucknorris.io/jokes/random
